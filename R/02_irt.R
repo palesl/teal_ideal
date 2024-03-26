@@ -71,13 +71,13 @@ ip_frame$name<-paste0(ip_frame$name.first," ",ip_frame$name.last,
 # tuned plot for teals
 
 
-p_teal<-ggplot(data = ip_frame, aes(-idealpt2,idealpt1))+
+p_teal<-ggplot(data = ip_frame, aes(idealpt1,idealpt2))+
   geom_point(col=ip_frame$Colour,size=2.2, alpha =0.5)+
   geom_point(shape=23,size=2.2,aes(col=teal, fill=teal, text=name))+
   scale_fill_manual(values=c("#00000000","#6bc2c3"))+
   scale_colour_manual(values=c("#00000000","black"))+
   theme_minimal()+
-  ylab('progressive dimension')+xlab('gov - opp dimension')+
+  xlab('progressive dimension')+ylab('gov - opp dimension')+
   theme(legend.position = "none")  +
   ggtitle('Teals')
 
@@ -86,13 +86,13 @@ p_teal<-ggplot(data = ip_frame, aes(-idealpt2,idealpt1))+
 # tuned plot for teals plus re-elected 
 
 
-p_teal_plus<-ggplot(data = ip_frame,aes(-idealpt2,idealpt1))+
+p_teal_plus<-ggplot(data = ip_frame,aes(idealpt1,idealpt2))+
   geom_point(col=ip_frame$Colour,size=2.2, alpha = 0.5)+
   geom_point(shape=23,size=2.2,aes(col=teal_plus, fill=teal_plus, text=name))+
   scale_fill_manual(values=c("#00000000","#6bc2c3"))+
   scale_colour_manual(values=c("#00000000","black"))+
   theme_minimal()+
-  ylab('progressive dimension')+xlab('gov - opp dimension')+
+  xlab('progressive dimension')+ylab('gov - opp dimension')+
   theme(legend.position = "none")+
   ggtitle('Teals plus re-elected independents')
 
@@ -126,24 +126,24 @@ ip_frame$group_teal_plus[ip_frame$teal_plus==T]<-'Teal'
 
 
 chull_coalition<- ip_frame|>filter(group_teal=="Coalition")|>
-  slice(chull(-idealpt2,idealpt1))
+  slice(chull(idealpt2,idealpt1))
 chull_alp<- ip_frame|>filter(group_teal=="ALP")|>
-  slice(chull(-idealpt2,idealpt1))
+  slice(chull(idealpt2,idealpt1))
 chull_grn<- ip_frame|>filter(Abbrev=="GRN")|>
-  slice(chull(-idealpt2,idealpt1))
+  slice(chull(idealpt2,idealpt1))
 chull_teal<- ip_frame|>filter(group_teal=="Teal")|>
-  slice(chull(-idealpt2,idealpt1))
+  slice(chull(idealpt2,idealpt1))
 chull_teal_plus<- ip_frame|>filter(group_teal_plus=="Teal")|>
-  slice(chull(-idealpt2,idealpt1))
+  slice(chull(idealpt2,idealpt1))
 
 # independents minus Russell Broadbent, who was lib for most of the parliament
 chull_independent<- ip_frame|>filter(name.last!="Broadbent")|>
   filter(party=="Independent"|name.last=="Katter")|>
-  slice(chull(-idealpt2,idealpt1))
+  slice(chull(idealpt2,idealpt1))
 
 
 # plots of the major groupings
-p_teal_hull<-ggplot(data = ip_frame,aes(-idealpt2,idealpt1))+
+p_teal_hull<-ggplot(data = ip_frame,aes(idealpt1,idealpt2))+
   geom_polygon(data=chull_coalition,alpha = 0.5,fill='#004694')+
   geom_polygon(data=chull_alp,alpha = 0.5,fill='#BB1313')+
   geom_polygon(data=chull_grn,alpha = 0.5,fill='#07A800')+
@@ -153,12 +153,12 @@ p_teal_hull<-ggplot(data = ip_frame,aes(-idealpt2,idealpt1))+
   scale_fill_manual(values=c("#00000000","#6bc2c3"))+
   scale_colour_manual(values=c("#00000000","black"))+
   theme_minimal()+
-  ylab('progressive dimension')+xlab('gov - opp dimension')+
+  xlab('progressive dimension')+ylab('gov - opp dimension')+
   theme(legend.position = "none")+
   ggtitle("Convex hulls of 'party' groupings")
 
 # plot with hulls for teals_plus and all independents
-p_teal_plus_hull<-ggplot(data = ip_frame,aes(-idealpt2,idealpt1))+
+p_teal_plus_hull<-ggplot(data = ip_frame,aes(idealpt1,idealpt2))+
   geom_polygon(data=chull_coalition,alpha = 0.5,fill='#004694')+
   geom_polygon(data=chull_alp,alpha = 0.5,fill='#BB1313')+
   geom_polygon(data=chull_grn,alpha = 0.5,fill='#07A800')+
@@ -170,7 +170,7 @@ p_teal_plus_hull<-ggplot(data = ip_frame,aes(-idealpt2,idealpt1))+
   scale_fill_manual(values=c("#00000000","#6bc2c3"))+
   scale_colour_manual(values=c("#00000000","black"))+
   theme_minimal()+
-  ylab('progressive dimension')+xlab('gov - opp dimension')+
+  xlab('progressive dimension')+ylab('gov - opp dimension')+
   theme(legend.position = "none")+
   ggtitle('Teals, teals plus, other independents')
   
