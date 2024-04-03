@@ -1,5 +1,5 @@
 dat<-readRDS('working_data/house_votes.rds')
-library(MCMCpack);library(pscl);library(tidyverse)
+library(MCMCpack);library(pscl);library(tidyverse);library(asmcjr)
 
 
 
@@ -8,7 +8,6 @@ model_mat <- dat|>dplyr::select(starts_with('div'))|>as.matrix()
 model_mat[model_mat=="aye"] <- 1
 model_mat[model_mat=="no"] <- 0
 rownames(model_mat)<-paste(dat$name.first,dat$name.last,sep = "_")
-
 
 
 #cleaning matrix
@@ -28,18 +27,32 @@ model_mat <- model_mat[rowSums(!is.na(model_mat)) >= cutoff,]
 head(sort(rowSums(!is.na(model_mat))))
 
 posterior2d <- MCMCirtKd(model_mat, dimensions=2,
-                         mcmc=15000, burnin=5000, thin=3,
+                         mcmc=15000, burnin=15000, thin=3,
                          theta.start=NA, alpha.start=NA, beta.start=NA,
                          t0=0, T0=1, a0=0, A0=0.25, b0=0, B0=0.25,
                          seed=NA, verbose=0, store.item=FALSE,
                          store.ability=TRUE, drop.constant.items=TRUE)
 
+
 idealpt1 <- colMeans(posterior2d[,seq(1, ncol(posterior2d), by=2)])
 idealpt2 <- colMeans(posterior2d[,seq(2, ncol(posterior2d), by=2)])
+
 
 # diagnostics for the tuned model...
 
 plot(posterior2d)
+
+
+theta1<-posterior2d[,seq(1, ncol(posterior2d), by=2)]
+theta2<-posterior2d[,seq(2, ncol(posterior2d), by=2)]
+
+sort(abs(geweke.diag(theta1)$z), decreasing=T)
+sort(abs(geweke.diag(theta2)$z), decreasing=T)
+
+geweke<-as.mcmc(theta1[,"theta.Joanne_Ryan.1"])
+
+
+
 
 # vizualisation
 
