@@ -1,4 +1,4 @@
-# Purpose of this code. To download the divisions, MP characteristics, and votes 
+# Purpose of this code. To download the divisions, MP characteristics, and votes
 # from theyvoteforyou.org.au. To format for analysis and save in working folder.
 
 # packages
@@ -18,30 +18,35 @@ divisions_2024_Q1 <-read_json('https://theyvoteforyou.org.au/api/v1/divisions.js
 
 divisions_47<-bind_rows(divisions_2024_Q1,divisions_2023_H2,divisions_2023_H1,divisions_2022)
 
+# save divisions data...
+
+saveRDS(divisions_47, 'working_data/divisions.rds')
+
+
 # divisions...
 vote_info_list<-list()
 
 for(i in 1:nrow(divisions_47)){
-  
+
   print(paste(i,"out of", nrow(divisions_47)))
-  
+
   url<-paste0("https://theyvoteforyou.org.au/api/v1/divisions/",divisions_47$id[i],".json?key=PTtX2PaLu0P2KMjGvXhZ")
   division<-read_json(url)
   votes<-division[["votes"]]
   division_name<-paste0('div',division$id)
-  
+
   extract_vote <- function(votes, division_name) {
     person_id <- votes$member$person$id
     vote <- votes$vote
-    
+
     out<-list(person_id = person_id, vote = vote)
-    
+
     names(out)[2]<-division_name
     return(out)
   }
-  
+
   vote_info_list[[i]] <- lapply(votes, extract_vote, division_name)|>bind_rows()
-  
+
 }
 
 
