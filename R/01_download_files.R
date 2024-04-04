@@ -14,9 +14,9 @@ here::i_am("R/01_download_files.R")
 divisions_2022 <-read_json('https://theyvoteforyou.org.au/api/v1/divisions.json?end_date=2022-12-31&house=representatives&key=PTtX2PaLu0P2KMjGvXhZ&start_date=2022-05-22')|>bind_rows()
 divisions_2023_H1 <-read_json('https://theyvoteforyou.org.au/api/v1/divisions.json?start_date=2023-01-01&end_date=2023-06-31&house=representatives&key=PTtX2PaLu0P2KMjGvXhZ')|>bind_rows()
 divisions_2023_H2 <-read_json('https://theyvoteforyou.org.au/api/v1/divisions.json?start_date=2023-07-01&end_date=2023-12-31&house=representatives&key=PTtX2PaLu0P2KMjGvXhZ')|>bind_rows()
-divisions_2023_Q1 <-read_json('https://theyvoteforyou.org.au/api/v1/divisions.json?start_date=2024-01-01&end_date=2024-03-15&house=representatives&key=PTtX2PaLu0P2KMjGvXhZ')|>bind_rows()
+divisions_2024_Q1 <-read_json('https://theyvoteforyou.org.au/api/v1/divisions.json?start_date=2024-01-01&end_date=2024-03-15&house=representatives&key=PTtX2PaLu0P2KMjGvXhZ')|>bind_rows()
 
-divisions_47<-bind_rows(divisions_2023_Q1,divisions_2023_H2,divisions_2023_H1,divisions_2022)
+divisions_47<-bind_rows(divisions_2024_Q1,divisions_2023_H2,divisions_2023_H1,divisions_2022)
 
 # divisions...
 vote_info_list<-list()
