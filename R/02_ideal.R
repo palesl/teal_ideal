@@ -1,12 +1,12 @@
 # Purpose of this code. To run and evaluate fit for some ideal point models
 # making use of:
-# Armstrong, David A., et al.2020. 
-# Analyzing Spatial Models of Choice and Judgment. 2nd ed. 
+# Armstrong, David A., et al.2020.
+# Analyzing Spatial Models of Choice and Judgment. 2nd ed.
 # New York: Chapman and Hall/CRC. doi:10.1201/9781315197609.
 
 
 dat<-readRDS('working_data/house_votes.rds')
-library(MCMCpack);library(pscl);library(tidyverse);library(oc);library(politicsR)
+library(pscl);library(tidyverse);library(oc);library(politicsR)
 
 # rice scores.
 
@@ -94,12 +94,12 @@ rice_scores <- bind_rows(teal=teal_rice,
 # model_mat[model_mat=="aye"] <- 1
 # model_mat[model_mat=="no"] <- 0
 # rownames(model_mat)<-paste(dat$name.first,dat$name.last,sep = "_")
-# 
-# 
+#
+#
 # #cleaning matrix
-# 
+#
 # rownames(model_mat) <- gsub("\\-","",rownames(model_mat))
-# 
+#
 
 # first with bayesian IRT...
 
@@ -108,32 +108,32 @@ rice_scores <- bind_rows(teal=teal_rice,
 
 # cutoff <- 50
 # model_mat <- model_mat[rowSums(!is.na(model_mat)) >= cutoff,]
-# 
+#
 # head(sort(rowSums(!is.na(model_mat))))
-# 
+#
 # posterior2d <- MCMCirtKd(model_mat, dimensions=2,
 #                          mcmc=15000, burnin=15000, thin=3,
 #                          theta.start=NA, alpha.start=NA, beta.start=NA,
 #                          t0=0, T0=1, a0=0, A0=0.25, b0=0, B0=0.25,
 #                          seed=NA, verbose=0, store.item=FALSE,
 #                          store.ability=TRUE, drop.constant.items=TRUE)
-# 
-# 
+#
+#
 # idealpt1 <- colMeans(posterior2d[,seq(1, ncol(posterior2d), by=2)])
 # idealpt2 <- colMeans(posterior2d[,seq(2, ncol(posterior2d), by=2)])
-# 
-# 
+#
+#
 # # diagnostics for the tuned model...
-# 
+#
 # plot(posterior2d)
-# 
-# 
+#
+#
 # theta1<-posterior2d[,seq(1, ncol(posterior2d), by=2)]
 # theta2<-posterior2d[,seq(2, ncol(posterior2d), by=2)]
-# 
+#
 # sort(abs(geweke.diag(theta1)$z), decreasing=T)
 # sort(abs(geweke.diag(theta2)$z), decreasing=T)
-# 
+#
 # geweke<-as.mcmc(theta1[,"theta.Joanne_Ryan.1"])
 
 # the diagnostics fail pretty badly here to produce something that looks stable
@@ -164,7 +164,7 @@ oc_teal_2dim <- oc(rc, dims=2, minvotes=50, lop=0.05,
 
 # checking fits
 
-summary(oc_teal_2dim) 
+summary(oc_teal_2dim)
 summary(oc_teal_1dim)
 
 fits <- cbind(oc_teal_1dim$fits, oc_teal_2dim$fits)
@@ -172,10 +172,10 @@ fits <- cbind(oc_teal_1dim$fits, oc_teal_2dim$fits)
 colnames(fits) <- c("1 Dim", "2 Dim")
 rownames(fits) <- c("% Correct", "APRE")
 
-fits 
+fits
 
-# clearly we have a winner in terms of fit, both average proportional 
-# reduction of error and %correct are excellent 
+# clearly we have a winner in terms of fit, both average proportional
+# reduction of error and %correct are excellent
 
 # how about the cutlines...
 
