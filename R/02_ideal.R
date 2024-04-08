@@ -4,6 +4,7 @@
 # Analyzing Spatial Models of Choice and Judgment. 2nd ed.
 # New York: Chapman and Hall/CRC. doi:10.1201/9781315197609.
 
+set.seed(123)
 
 dat<-readRDS('working_data/house_votes.rds')
 library(pscl);library(tidyverse);library(oc);library(politicsR)
