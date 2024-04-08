@@ -128,9 +128,9 @@ p_teal_plus_hull<-ggplot(data = ip_frame,aes(coord1D,coord2D))+
   theme_minimal()+
   ylab("alternative policy")+xlab('gov - opp policy')+
   theme(legend.position = "none")+
-  ggtitle("\nParties, Teals, teals plus, other independents")
+  xlim(-1,1)+ylim(-1,1)
 
-ggplotly(p_teal_hull, tooltip = "name")
+
 
 ggplotly(p_teal_plus_hull, tooltip = "name")
 
@@ -160,30 +160,28 @@ divisions_dat$negatived<-divisions_dat$no_votes >divisions_dat$aye_votes
 divisions_dat$negatived[divisions_dat$negatived==F]<-"Agreed to"
 divisions_dat$negatived[divisions_dat$negatived==T]<-"Negatived"
 
-divisions_dat$name<-paste0(divisions_dat$name,"\nResult: ",
-                           divisions_dat$negatived,'\nTurnout: ',
+divisions_dat$name<-stringr::str_wrap(divisions_dat$name, width = 40)
+
+divisions_dat$name<-paste0(divisions_dat$name,"\n\nDate: ",
+                           divisions_dat$date ,"\nResult: ",
+                           divisions_dat$negatived,". Ayes: ",
+                           divisions_dat$aye_votes, ". Noes: ",
+                           divisions_dat$no_votes,
+                           '\nTurnout: ',
                            divisions_dat$turnout)
 
+divisions_dat$type<-divisions_dat$name
+divisions_dat$type[grep("^Motions",divisions_dat$type)]<-'Motion'
+divisions_dat$type[grep("^Regulations",divisions_dat$type)]<-'Regulations and Determinations'
+divisions_dat$type[grep("^Business",divisions_dat$type)]<-'Business'
+divisions_dat$type[grep("^Committees",divisions_dat$type)]<-'Committees'
+divisions_dat$type[grep("^Questions",divisions_dat$type)]<-'Questions without Notice'
+divisions_dat$type[grep("Bill|bill",divisions_dat$type)]<-'Bill'
+
+divisions_dat$type|>table()
+
+
 # plotting
-
-
-
-
-
-p_cutlines<-ggplot(data = ip_frame, aes(coord1D,coord2D))+
-  geom_segment(data=divisions_dat,
-               aes(x=x,y=y,xend=xend,yend=yend, text=name),
-               alpha=0.3, linewidth=0.2)+
-  geom_point(col=ip_frame$Colour,size=2.2, alpha =0.5)+
-  geom_point(shape=23,size=2.2,aes(col=teal, fill=teal, text=name))+
-  scale_fill_manual(values=c("#00000000","#6bc2c3"))+
-  scale_colour_manual(values=c("#00000000","black"))+
-  theme_minimal()+
-  ylab("alternative policy")+xlab('gov - opp policy')+
-  theme(legend.position = "none")
-
-p_cutline_plotly<-ggplotly(p_cutlines, tooltip = "name")
-p_cutline_plotly
 
 
 divisions_dat$slope<-(divisions_dat$yend-divisions_dat$y)/
@@ -192,12 +190,46 @@ divisions_dat$slope<-(divisions_dat$yend-divisions_dat$y)/
 
 angle_v_turnout<-ggplot(data=divisions_dat,
                         aes(turnout,abs_angle,
-                            colour=negatived,text=name))+
+                            colour=type,text=name))+
   geom_point(alpha=.5)+theme_minimal()+
-  scale_colour_manual(values=c("green3", "red"))+
   scale_y_continuous(breaks = c(15,30,45,60,75,90))+
-  ylab("|cutpoint angle|")
+  ylab("alternative←|cutpoint angle|→gov-opp")
 
-ggplotly(angle_v_turnout, tooltip = "name")
+angle_v_turnout_plotly<-ggplotly(angle_v_turnout, tooltip = "name")
+
+
+divisions_dat_hl <- highlight_key(divisions_dat, ~name)
+
+p_cutlines<-ggplot(data = ip_frame, aes(coord1D,coord2D))+
+  geom_polygon(data=chull_coalition,alpha = 0.5,fill='#004694')+
+  geom_polygon(data=chull_alp,alpha = 0.5,fill='#BB1313')+
+  geom_polygon(data=chull_grn,alpha = 0.5,fill='#07A800')+
+  geom_polygon(data=chull_independent,alpha = 0.3,fill='#9E18DF')+
+  geom_polygon(data=chull_teal_plus,lty=2,alpha = 1,fill='#6bc2c3',col="black")+
+  geom_polygon(data=chull_teal,alpha = 1,fill='#6bc2c3',col="black")+
+  geom_segment(data=divisions_dat_hl,
+               aes(x=x,y=y,xend=xend,yend=yend, text=name),
+               alpha=0.3, linewidth=0.2, col='grey')+
+  geom_point(col=ip_frame$Colour,size=2.2, alpha =0.5)+
+  geom_point(shape=23,size=2.2,aes(col=teal, fill=teal, text=name))+
+  scale_fill_manual(values=c("#00000000","#6bc2c3"))+
+  scale_colour_manual(values=c("#00000000","black"))+
+  theme_minimal()+
+  ylab("alternative policy")+xlab('gov - opp policy')+
+  theme(legend.position = "none")
+
+p_cutline_plotly<-ggplotly(p_cutlines, tooltip = "name")|>
+  plotly::highlight(on = "plotly_hover", off = "plotly_deselect", color = '#FF0000')|>
+  layout(hovermode = 'closest', hoverlabel=list(bgcolor='rgba(0,0,0,.1)',
+                                                font=list(size=10)
+                                                ))
+
+p_cutline_plotly
+
+# little regression explaining cutline angle loading to dimension 1
+
+lm(abs_angle~turnout+negatived+type,data=divisions_dat)|>summary()
+
+cor.test(divisions_dat$abs_angle,divisions_dat$turnout)
 
 
