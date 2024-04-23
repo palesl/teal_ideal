@@ -148,6 +148,29 @@ vote_frame_house$teal_plus[vote_frame_house$electorate==
 vote_frame_house<-vote_frame_house|>
   relocate(person_id,name.first,name.last,house,electorate,party, teal,teal_plus)
 
+# accounting for abtsentions and 'out of legislature'
+
+# Aston by-election
+
+vote_frame_house[vote_frame_house$name.last=='Tudge', 9:183]<- 'out'
+vote_frame_house[vote_frame_house$name.last=='Doyle', 145:ncol(vote_frame_house)]<- 'out'
+
+# Fadden byelection
+
+
+vote_frame_house[vote_frame_house$name.last=='Robert', 9:148]<- 'out'
+vote_frame_house[vote_frame_house$name.last=='Caldwell', 122:ncol(vote_frame_house)]<- 'out'
+
+
+# Dunkley by-election
+vote_frame_house[,76]
+
+vote_frame_house[vote_frame_house$name.last=='Murphy', 9:76]<- 'out'
+vote_frame_house[vote_frame_house$name.last=='Belyea', 9:ncol(vote_frame_house)]<- 'out'
+
+# abstain
+
+vote_frame_house[is.na(vote_frame_house)]<-'abstain'
 
 # save file
 

@@ -9,11 +9,15 @@ set.seed(123)
 dat<-readRDS('working_data/house_votes.rds')
 library(pscl);library(tidyverse);library(oc);library(politicsR)
 
+
+
 # rice scores.
 
 rice_dat<-dat
 rice_dat[rice_dat=="aye"]<-'Yay'
 rice_dat[rice_dat=="no"]<-'Nay'
+rice_dat[rice_dat=="abstain"]<-NA
+rice_dat[rice_dat=="out"]<-NA
 
 teal_rice<- rice_dat|>filter(teal==T)|>
   select(9:282)|>
@@ -90,6 +94,94 @@ rice_scores <- bind_rows(teal=teal_rice,
                         green=green_rice)
 
 
+# agreement index scores (Hix, Noury and Roland)
+# (max{Yi, Ni, Ai} - 1/2*[(Yi + Ni + Ai) - max{Yi, Ni, Ai}] )/(Yi + Ni + Ai)
+
+
+ai<- function(x){
+  y<-length(x[x=='aye'])
+  n<-length(x[x=='no'])
+  a<-length(x[x=='abstain'])
+
+  out<- (max(y,n,a) - 0.5*((y+n+a)-max(y,n,a)))/(y+n+a)
+
+  return(out)
+}
+
+teal_ai<- dat|>filter(teal==T)|>
+  select(9:282)|>
+  select(
+    where(
+      ~sum(!is.na(.x)) > 0
+    )
+  )|>
+  mutate(across(where(is.character), as.factor))|>
+  summarise(across(starts_with("div"), ~ ai(.x)))|>
+  rowMeans()
+
+teal_plus_ai<- dat|>filter(teal_plus==T)|>
+  select(9:282)|>
+  select(
+    where(
+      ~sum(!is.na(.x)) > 0
+    )
+  )|>
+  mutate(across(where(is.character), as.factor))|>
+  summarise(across(starts_with("div"), ~ ai(.x)))|>
+  rowMeans()
+
+alp_ai<-dat|>filter(party=="Australian Labor Party")|>
+  select(9:282)|>
+  select(
+    where(
+      ~sum(!is.na(.x)) > 0
+    )
+  )|>
+  mutate(across(where(is.character), as.factor))|>
+  summarise(across(starts_with("div"), ~ ai(.x)))|>
+  rowMeans()
+
+lib_ai<-dat|>filter(party=="Liberal Party"|
+                      party=="Liberal National Party")|>
+  select(9:282)|>
+  select(
+    where(
+      ~sum(!is.na(.x)) > 0
+    )
+  )|>
+  mutate(across(where(is.character), as.factor))|>
+  summarise(across(starts_with("div"), ~ ai(.x)))|>
+  rowMeans()
+
+nat_ai<-dat|>filter(party=="National Party")|>
+  select(9:282)|>
+  select(
+    where(
+      ~sum(!is.na(.x)) > 0
+    )
+  )|>
+  mutate(across(where(is.character), as.factor))|>
+  summarise(across(starts_with("div"), ~ ai(.x)))|>
+  rowMeans()
+
+green_ai <-dat|>filter(party=="Australian Greens")|>
+  select(9:282)|>
+  select(
+    where(
+      ~sum(!is.na(.x)) > 0
+    )
+  )|>
+  mutate(across(where(is.character), as.factor))|>
+  summarise(across(starts_with("div"), ~ ai(.x)))|>
+  rowMeans()
+
+ai_scores <- bind_rows(teal=teal_ai,
+                       teal_plus=teal_plus_ai,
+                       alp=alp_ai,
+                       lib=lib_ai,
+                       nat=nat_ai,
+                       green=green_ai)
+
 # model_mat <- dat|>dplyr::select(starts_with('div'))|>as.matrix()
 
 # model_mat[model_mat=="aye"] <- 1
@@ -147,7 +239,8 @@ library(oc)
 rc <- rollcall(data=dat[,9:ncol(dat)],
                yea="aye",
                nay="no",
-               missing	= NA,
+               missing	= 'abstain',
+               notInLegis = 'out',
                legis.names=paste0(dat$name.first," ",dat$name.last,
                                   " (", dat$party, ")"),
                vote.names=colnames(dat[,9:ncol(dat)]),
