@@ -1,7 +1,7 @@
 # helpers
 
 
-# cutline -- slightly modified add.OCcutline function from 'oc' package to use with ggplot
+# cutline -- modified add.OCcutline function from 'oc' package to port for use with ggplot
 cutline <- function(cutData) {
 
   slope <- -cutData[1]/cutData[2]
