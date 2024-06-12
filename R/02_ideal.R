@@ -13,14 +13,16 @@ library(pscl);library(tidyverse);library(oc);library(politicsR)
 
 # rice scores.
 
-rice_dat<-dat
-rice_dat[rice_dat=="aye"]<-'Yay'
-rice_dat[rice_dat=="no"]<-'Nay'
-rice_dat[rice_dat=="abstain"]<-NA
-rice_dat[rice_dat=="out"]<-NA
+rice_dat<-cbind(dat[,1:6],apply(dat[7:ncol(dat)],2,as.character))
+
+
+rice_dat[rice_dat=='1']<-'Yay'
+rice_dat[rice_dat=='2']<-'Nay'
+rice_dat[rice_dat=='5']<-NA
+rice_dat[rice_dat=='9']<-NA
 
 teal_rice<- rice_dat|>filter(teal==T)|>
-  select(9:282)|>
+  select(7:ncol(rice_dat))|>
   select(
     where(
       ~sum(!is.na(.x)) > 0
@@ -31,7 +33,7 @@ teal_rice<- rice_dat|>filter(teal==T)|>
   rowMeans()
 
 teal_plus_rice<- rice_dat|>filter(teal_plus==T)|>
-  select(9:282)|>
+  select(7:ncol(rice_dat))|>
   select(
     where(
       ~sum(!is.na(.x)) > 0
@@ -41,8 +43,8 @@ teal_plus_rice<- rice_dat|>filter(teal_plus==T)|>
   summarise(across(starts_with("div"), ~ rice(.x)))|>
   rowMeans()
 
-alp_rice<-rice_dat|>filter(party=="Australian Labor Party")|>
-  select(9:282)|>
+alp_rice<-rice_dat|>filter(partyName=="Australian Labor Party")|>
+  select(7:ncol(rice_dat))|>
   select(
     where(
       ~sum(!is.na(.x)) > 0
@@ -52,9 +54,9 @@ alp_rice<-rice_dat|>filter(party=="Australian Labor Party")|>
   summarise(across(starts_with("div"), ~ rice(.x)))|>
   rowMeans()
 
-lib_rice<-rice_dat|>filter(party=="Liberal Party"|
-                             party=="Liberal National Party")|>
-  select(9:282)|>
+lib_rice<-rice_dat|>filter(partyName=="Liberal Party"|
+                             partyName=="Liberal National Party of Queensland")|>
+  select(7:ncol(rice_dat))|>
   select(
     where(
       ~sum(!is.na(.x)) > 0
@@ -64,8 +66,8 @@ lib_rice<-rice_dat|>filter(party=="Liberal Party"|
   summarise(across(starts_with("div"), ~ rice(.x)))|>
   rowMeans()
 
-nat_rice<-rice_dat|>filter(party=="National Party")|>
-  select(9:282)|>
+nat_rice<-rice_dat|>filter(partyName=="The Nationals")|>
+  select(7:ncol(rice_dat))|>
   select(
     where(
       ~sum(!is.na(.x)) > 0
@@ -75,8 +77,8 @@ nat_rice<-rice_dat|>filter(party=="National Party")|>
   summarise(across(starts_with("div"), ~ rice(.x)))|>
   rowMeans()
 
-green_rice <-rice_dat|>filter(party=="Australian Greens")|>
-  select(9:282)|>
+green_rice <-rice_dat|>filter(partyName=="Australian Greens")|>
+  select(7:ncol(rice_dat))|>
   select(
     where(
       ~sum(!is.na(.x)) > 0
@@ -99,9 +101,9 @@ rice_scores <- bind_rows(teal=teal_rice,
 
 
 ai<- function(x){
-  y<-length(x[x=='aye'])
-  n<-length(x[x=='no'])
-  a<-length(x[x=='abstain'])
+  y<-length(x[x==1])
+  n<-length(x[x==2])
+  a<-length(x[x==5])
 
   out<- (max(y,n,a) - 0.5*((y+n+a)-max(y,n,a)))/(y+n+a)
 
@@ -109,7 +111,7 @@ ai<- function(x){
 }
 
 teal_ai<- dat|>filter(teal==T)|>
-  select(9:282)|>
+  select(7:ncol(rice_dat))|>
   select(
     where(
       ~sum(!is.na(.x)) > 0
@@ -120,7 +122,7 @@ teal_ai<- dat|>filter(teal==T)|>
   rowMeans()
 
 teal_plus_ai<- dat|>filter(teal_plus==T)|>
-  select(9:282)|>
+  select(7:ncol(rice_dat))|>
   select(
     where(
       ~sum(!is.na(.x)) > 0
@@ -130,8 +132,8 @@ teal_plus_ai<- dat|>filter(teal_plus==T)|>
   summarise(across(starts_with("div"), ~ ai(.x)))|>
   rowMeans()
 
-alp_ai<-dat|>filter(party=="Australian Labor Party")|>
-  select(9:282)|>
+alp_ai<-dat|>filter(partyName=="Australian Labor Party")|>
+  select(7:ncol(rice_dat))|>
   select(
     where(
       ~sum(!is.na(.x)) > 0
@@ -141,9 +143,9 @@ alp_ai<-dat|>filter(party=="Australian Labor Party")|>
   summarise(across(starts_with("div"), ~ ai(.x)))|>
   rowMeans()
 
-lib_ai<-dat|>filter(party=="Liberal Party"|
-                      party=="Liberal National Party")|>
-  select(9:282)|>
+lib_ai<-dat|>filter(partyName=="Liberal Party"|
+                      partyName=="Liberal National Party of Queensland")|>
+  select(7:ncol(rice_dat))|>
   select(
     where(
       ~sum(!is.na(.x)) > 0
@@ -153,8 +155,8 @@ lib_ai<-dat|>filter(party=="Liberal Party"|
   summarise(across(starts_with("div"), ~ ai(.x)))|>
   rowMeans()
 
-nat_ai<-dat|>filter(party=="National Party")|>
-  select(9:282)|>
+nat_ai<-dat|>filter(partyName=="The Nationals")|>
+  select(7:ncol(rice_dat))|>
   select(
     where(
       ~sum(!is.na(.x)) > 0
@@ -164,8 +166,8 @@ nat_ai<-dat|>filter(party=="National Party")|>
   summarise(across(starts_with("div"), ~ ai(.x)))|>
   rowMeans()
 
-green_ai <-dat|>filter(party=="Australian Greens")|>
-  select(9:282)|>
+green_ai <-dat|>filter(partyName=="Australian Greens")|>
+  select(7:ncol(rice_dat))|>
   select(
     where(
       ~sum(!is.na(.x)) > 0
@@ -236,25 +238,25 @@ ai_scores <- bind_rows(teal=teal_ai,
 
 library(oc)
 
-rc <- rollcall(data=dat[,9:ncol(dat)],
-               yea="aye",
-               nay="no",
-               missing	= 'abstain',
-               notInLegis = 'out',
-               legis.names=paste0(dat$name.first," ",dat$name.last,
-                                  " (", dat$party, ")"),
-               vote.names=colnames(dat[,9:ncol(dat)]),
-               legis.data=dat[,1:8],
+rc <- rollcall(data=dat[,7:ncol(dat)],
+               yea=1,
+               nay=2,
+               missing	= 5,
+               notInLegis = 9,
+               legis.names=dat$DisplayName,
+               vote.names=names(dat[,7:ncol(dat)]),
+               legis.data=dat[,1:6],
                vote.data=NULL,
                desc="47th Parliament of the Australian House of Representatives")
 
 
+dutton_no<- grep('DUTTON,',dat$DisplayName)
 
-oc_teal_1dim <- oc(rc, dims=1, minvotes=50, lop=0.05,
-                   polarity=c(102), verbose=T)
+oc_teal_1dim <- oc(rc, dims=1, minvotes=25, lop=0.05,
+                   polarity=c(dutton_no), verbose=T)
 
-oc_teal_2dim <- oc(rc, dims=2, minvotes=50, lop=0.05,
-              polarity=c(102,102), verbose=T)
+oc_teal_2dim <- oc(rc, dims=2, minvotes=25, lop=0.05,
+              polarity=c(dutton_no,dutton_no), verbose=T)
 
 # checking fits
 
@@ -273,7 +275,7 @@ fits
 
 # how about the cutlines...
 
-cutlines <-oc_teal_2dim$rollcalls
+cutlines <- oc_teal_2dim$rollcalls
 
 
 

@@ -1,5 +1,5 @@
 # Purpose of this code. To download the divisions, MP characteristics, and votes
-# from theyvoteforyou.org.au. To format for analysis and save in working folder.
+# from aph.gov.au. To format for analysis and save in working folder.
 
 # packages
 
@@ -9,172 +9,161 @@ library(rvest);library(tidyverse);library(here);library(jsonlite)
 
 here::i_am("R/01_download_files.R")
 
+# helpers
+
+source("R/00_helpers.R")
 # get all house divisions in the 47th Parliament
 
-divisions_2022 <-read_json('https://theyvoteforyou.org.au/api/v1/divisions.json?end_date=2022-12-31&house=representatives&key=PTtX2PaLu0P2KMjGvXhZ&start_date=2022-05-22')|>bind_rows()
-divisions_2023_H1 <-read_json('https://theyvoteforyou.org.au/api/v1/divisions.json?start_date=2023-01-01&end_date=2023-06-31&house=representatives&key=PTtX2PaLu0P2KMjGvXhZ')|>bind_rows()
-divisions_2023_H2 <-read_json('https://theyvoteforyou.org.au/api/v1/divisions.json?start_date=2023-07-01&end_date=2023-12-31&house=representatives&key=PTtX2PaLu0P2KMjGvXhZ')|>bind_rows()
-divisions_2024_Q1 <-read_json('https://theyvoteforyou.org.au/api/v1/divisions.json?start_date=2024-01-01&end_date=2024-03-15&house=representatives&key=PTtX2PaLu0P2KMjGvXhZ')|>bind_rows()
 
-divisions_47<-bind_rows(divisions_2024_Q1,divisions_2023_H2,divisions_2023_H1,divisions_2022)
+divisionsPH<-read_json("https://divisions.aph.gov.au/api/division?f=2022-7-26&t=2024-6-6&page=0&ps=1000")[[3]]
+divisionsPH_list<-list()
+
+for(i in 1:length(divisionsPH)){
+  divisionsPH_list[[i]]<-unlist(divisionsPH[[i]])
+}
+divisions<-bind_rows(divisionsPH_list)
+
 
 # save divisions data...
 
-saveRDS(divisions_47, 'working_data/divisions.rds')
+saveRDS(divisions, 'working_data/divisions.rds')
 
 
 # divisions...
 vote_info_list<-list()
 
-for(i in 1:nrow(divisions_47)){
+for(i in 1:nrow(divisions)){
 
-  print(paste(i,"out of", nrow(divisions_47)))
-
-  url<-paste0("https://theyvoteforyou.org.au/api/v1/divisions/",divisions_47$id[i],".json?key=PTtX2PaLu0P2KMjGvXhZ")
+  print(paste(i,"out of", nrow(divisions), "(votes)"))
+  url<-paste0('https://divisions.aph.gov.au/api/division/',divisions$divisionId[i])
   division<-read_json(url)
   votes<-division[["votes"]]
-  division_name<-paste0('div',division$id)
+  division_name<-paste0('div',division$divisionNumber)
 
-  extract_vote <- function(votes, division_name) {
-    person_id <- votes$member$person$id
-    vote <- votes$vote
+  votes<-votes|>bind_rows()|>select(parliamentarianId,partyName,partyColour, voteResultId)
+  names(votes)[4]<-division_name
 
-    out<-list(person_id = person_id, vote = vote)
 
-    names(out)[2]<-division_name
-    return(out)
-  }
-
-  vote_info_list[[i]] <- lapply(votes, extract_vote, division_name)|>bind_rows()
+  vote_info_list[[i]] <-  votes
 
 }
 
 
 # get personal information...
 
-current_people<-read_json("https://theyvoteforyou.org.au/api/v1/people.json?key=PTtX2PaLu0P2KMjGvXhZ")
 
-
-people_tibble<-lapply(current_people, unlist)|>bind_rows()|>select(-latest_member.id)
-
-names(people_tibble)<-gsub("latest_member.","",names(people_tibble), fixed = T)
-
-names(people_tibble)[1]<-'person_id'
 
 
 # append_lists
 
 
-vote_frame<-vote_info_list|> reduce(full_join, by = "person_id")
+vote_frame<-vote_info_list|> reduce(full_join, by = c('parliamentarianId',
+                                                      'partyName' ,
+                                                      'partyColour'))
 
-vote_frame$person_id<-as.character(vote_frame$person_id)
+vote_frame$parliamentarianId<-toupper(vote_frame$parliamentarianId)
 
-vote_frame_joined<-vote_frame|>full_join(people_tibble)
+vote_frame <- vote_frame |> left_join(ausPH::getIndividuals()|>select(DisplayName,PHID), by= join_by("parliamentarianId"=="PHID"))
 
-# re attaching former MPs to the dataset
-
-mp_ids<- vote_frame_joined$person_id[is.na(vote_frame_joined$name.first)]
-
-mp_ids<-data.frame(person_id=mp_ids)
-leftover_mps<-list()
-
-
-for(i in 1:nrow(mp_ids)){
-  url<-paste0("https://theyvoteforyou.org.au/api/v1/people/",mp_ids$person_id[i],".json?key=PTtX2PaLu0P2KMjGvXhZ")
-  person<-read_json(url)
-  flat<-person[2]|>unlist()
-  names(flat)<-gsub("latest_member.","",names(flat))
-  flat<-t(flat)|>as.data.frame()|>select(-id)
-  flat<-bind_cols(person_id=mp_ids[i,1], flat)
-  leftover_mps[[i]]<-flat
-}
-
-leftover_mps<-bind_rows(leftover_mps)
-
-# merging back to the main data...
-
-vote_frame_current<-vote_frame_joined|>filter(!is.na(electorate))
-
-vote_frame_past<-vote_frame_joined|>filter(is.na(electorate))|>
-  select(-(name.first:party))|>left_join(leftover_mps)
-
-vote_frame_full<-bind_rows(vote_frame_current,vote_frame_past)
-
-# restricting to house members
-
-vote_frame_house<-vote_frame_full|>filter(house=="representatives")
 
 
 # identifying climate 200 MPs
 
-vote_frame_house$teal<-FALSE
-vote_frame_house$teal_plus<-FALSE
+vote_frame$teal<-FALSE
+vote_frame$teal_plus<-FALSE
 
-vote_frame_house$teal[vote_frame_house$electorate==
-                              "North Sydney"|
-                              vote_frame_house$electorate==
-                              "Goldstein"|
-                              vote_frame_house$electorate==
-                              "Kooyong"|
-                              vote_frame_house$electorate==
-                              "Mackellar"|
-                              vote_frame_house$electorate==
-                              "Wentworth"|
-                              vote_frame_house$electorate==
-                              "Curtin"]<-TRUE
+vote_frame$teal[vote_frame$parliamentarianId==
+                              "008CH"|
+                  vote_frame$parliamentarianId==
+                              "286042"|
+                  vote_frame$parliamentarianId==
+                              "297660"|
+                  vote_frame$parliamentarianId==
+                              "299623"|
+                  vote_frame$parliamentarianId==
+                              "300006"|
+                  vote_frame$parliamentarianId==
+                              "300124"]<-TRUE
 
-vote_frame_house$teal_plus[vote_frame_house$electorate==
-                                   "North Sydney"|
-                                   vote_frame_house$electorate==
-                                   "Goldstein"|
-                                   vote_frame_house$electorate==
-                                   "Kooyong"|
-                                   vote_frame_house$electorate==
-                                   "Mackellar"|
-                                   vote_frame_house$electorate==
-                                   "Wentworth"|
-                                   vote_frame_house$electorate==
-                                   "Curtin"|
-                                   vote_frame_house$electorate==
-                                   "Warringah"|
-                                   vote_frame_house$electorate==
-                                   "Mayo"|
-                                   vote_frame_house$electorate==
-                                   "Clark"|
-                                   vote_frame_house$electorate==
-                                   "Indi"]<-TRUE
+vote_frame$teal_plus[vote_frame$parliamentarianId==
+                             "008CH"|
+                             vote_frame$parliamentarianId==
+                             "286042"|
+                             vote_frame$parliamentarianId==
+                             "297660"|
+                             vote_frame$parliamentarianId==
+                             "299623"|
+                             vote_frame$parliamentarianId==
+                             "300006"|
+                             vote_frame$parliamentarianId==
+                             "300124"|
+                             vote_frame$parliamentarianId==
+                             "282335"|
+                             vote_frame$parliamentarianId==
+                             "175696"|
+                             vote_frame$parliamentarianId==
+                             "C2T"|
+                             vote_frame$parliamentarianId==
+                             "265980"]<-TRUE
 
 # reordering variables
-vote_frame_house<-vote_frame_house|>
-  relocate(person_id,name.first,name.last,house,electorate,party, teal,teal_plus)
 
-# accounting for abtsentions and 'out of legislature'
+latest_div<-paste0('div',nrow(divisions))
+
+vote_frame<-vote_frame|>
+  relocate(parliamentarianId,DisplayName,partyName,partyColour,teal,teal_plus,
+           div1:all_of(latest_div))
+
+# renaming division variables
+
+
+new_names<-paste0("div", divisions$divisionNumber,"_", lubridate::date(divisions$date)|>format("%d%b%Y"))
+
+names(vote_frame)[7:ncol(vote_frame)]<- new_names[length(new_names):1]
+
+#  accounting for 'out of legislature' due to byelection [coded=9]
 
 # Aston by-election
 
-vote_frame_house[vote_frame_house$name.last=='Tudge', 9:183]<- 'out'
-vote_frame_house[vote_frame_house$name.last=='Doyle', 145:ncol(vote_frame_house)]<- 'out'
+vote_frame[grep("TUDGE,", vote_frame$DisplayName) , 110:ncol(vote_frame)]<- 9
+vote_frame[grep("DOYLE,", vote_frame$DisplayName), 7:139]<- 9
 
 # Fadden byelection
 
 
-vote_frame_house[vote_frame_house$name.last=='Robert', 9:148]<- 'out'
-vote_frame_house[vote_frame_house$name.last=='Caldwell', 122:ncol(vote_frame_house)]<- 'out'
+vote_frame[grep("ROBERT,", vote_frame$DisplayName), 146:ncol(vote_frame)]<- 9
+vote_frame[grep("CALDWELL,", vote_frame$DisplayName), 7:171]<- 9
 
 
 # Dunkley by-election
-vote_frame_house[,76]
 
-vote_frame_house[vote_frame_house$name.last=='Murphy', 9:76]<- 'out'
-vote_frame_house[vote_frame_house$name.last=='Belyea', 9:ncol(vote_frame_house)]<- 'out'
+vote_frame[grep("MURPHY,", vote_frame$DisplayName), 271:ncol(vote_frame)]<- 9
+vote_frame[grep("BELYEA,", vote_frame$DisplayName), 7:307]<- 9
 
+# Cook by-election
+
+
+vote_frame[grep("MORRISON,", vote_frame$DisplayName), 306:ncol(vote_frame)]<- 9
+vote_frame[grep("KENNEDY,", vote_frame$DisplayName), 7:354]<- 9
+
+#  accounting for 'out of legislature' due to party switch
+
+vote_frame[grepl("GEE,", vote_frame$DisplayName) & vote_frame$partyName=="Independent",
+           7:95]<- 9
+vote_frame[grepl("GEE,", vote_frame$DisplayName) & vote_frame$partyName=="The Nationals",
+           96:ncol(vote_frame)]<- 9
+
+vote_frame[grepl("BROADBENT,", vote_frame$DisplayName) & vote_frame$partyName=="Independent",
+           7:223]<- 9
+vote_frame[grepl("BROADBENT,", vote_frame$DisplayName) & vote_frame$partyName=="Liberal Party of Australia",
+           224:ncol(vote_frame)]<- 9
 # abstain
 
-vote_frame_house[is.na(vote_frame_house)]<-'abstain'
+vote_frame[is.na(vote_frame)]<-5
 
 # save file
 
-saveRDS(vote_frame_house, "working_data/house_votes.rds")
+saveRDS(vote_frame, "working_data/house_votes.rds")
 
 
 
