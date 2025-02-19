@@ -4,9 +4,10 @@
 # Analyzing Spatial Models of Choice and Judgment. 2nd ed.
 # New York: Chapman and Hall/CRC. doi:10.1201/9781315197609.
 
-set.seed(123)
+set.seed(1234)
 
 dat<-readRDS('working_data/house_votes.rds')
+divisions<-readRDS( 'working_data/divisions.rds')
 library(pscl);library(tidyverse);library(oc);library(politicsR)
 
 
@@ -32,6 +33,31 @@ teal_rice<- rice_dat|>filter(teal==T)|>
   summarise(across(starts_with("div"), ~ rice(.x)))|>
   rowMeans()
 
+teal_splits<-rice_dat|>filter(teal==T)|>
+  select(7:ncol(rice_dat))|>
+  select(
+    where(
+      ~sum(!is.na(.x)) > 0
+    )
+  )|>
+  mutate(across(where(is.character), as.factor))|>
+  summarise(across(starts_with("div"), ~ rice(.x)))|>
+  t() |>as.data.frame()
+
+teal_splits$division_name<-rownames(teal_splits)
+names(teal_splits)[1]<-"Rice_teal"
+
+divisions$division_name<-paste0("div",divisions$divisionNumber,"_",
+                                as.Date(divisions$date)|>format("%d%b%Y"))
+
+divisions<-divisions|>left_join(teal_splits)
+
+divisions$url<-paste0("https://www.aph.gov.au/Parliamentary_Business/Chamber_documents/HoR/Divisions/Details?id=",
+                      divisions$divisionId)
+
+
+
+
 teal_plus_rice<- rice_dat|>filter(teal_plus==T)|>
   select(7:ncol(rice_dat))|>
   select(
@@ -42,6 +68,54 @@ teal_plus_rice<- rice_dat|>filter(teal_plus==T)|>
   mutate(across(where(is.character), as.factor))|>
   summarise(across(starts_with("div"), ~ rice(.x)))|>
   rowMeans()
+
+
+teal_plus_splits<-rice_dat|>filter(teal_plus==T)|>
+  select(7:ncol(rice_dat))|>
+  select(
+    where(
+      ~sum(!is.na(.x)) > 0
+    )
+  )|>
+  mutate(across(where(is.character), as.factor))|>
+  summarise(across(starts_with("div"), ~ rice(.x)))|>
+  t() |>as.data.frame()
+
+teal_plus_splits$division_name<-rownames(teal_plus_splits)
+
+
+names(teal_plus_splits)[1]<-"Rice_teal_plus"
+
+divisions<-divisions|>left_join(teal_plus_splits)
+divisions$date<-as.Date(divisions$date)
+ggplot(data=divisions, aes(date, Rice_teal))+geom_smooth()+geom_point()
+teal_split_table<-divisions|>filter(Rice_teal<1)|>
+  select(title, question)|>
+  mutate(division_type=case_when(grepl("Fair Work",title)~"Bills, Fair Work Legislation",
+                                 grepl("Bill",title)~"Bills, other",
+                                 grepl("Suspension of", title)~"Suspension of Standing Orders, other procedure",
+                                 grepl("Hamas",title)~"Israel Gaza Conflict",
+                                 grepl("Two-state",title)~"Israel Gaza Conflict",
+                                 .default = "Motions, other")
+  )|>group_by(division_type)|>
+  summarise(n=n(),
+            teals =paste0(n()," (",round(100*n()/nrow(divisions|>filter(Rice_teal_plus<1)),1),"%)")
+  )|>arrange(-n)|>select(-n)
+
+teal_plus_split_table<-divisions|>filter(Rice_teal_plus<1)|>
+  select(title, question)|>
+  mutate(division_type=case_when(grepl("Fair Work",title)~"Bills, Fair Work Legislation",
+                                 grepl("Bill",title)~"Bills, other",
+                                 grepl("Suspension of", title)~"Suspension of Standing Orders, other procedure",
+                                 grepl("Hamas",title)~"Israel Gaza Conflict",
+                                 grepl("Two-state",title)~"Israel Gaza Conflict",
+                                 .default = "Motions, other")
+  )|>group_by(division_type)|>
+  summarise(n=n(),
+            teals_plus=paste0(n()," (",round(100*n()/nrow(divisions|>filter(Rice_teal_plus<1)),1),"%)")
+            )|>arrange(-n)|>select(-n)
+
+split_tab<-teal_split_table|>left_join(teal_plus_split_table)
 
 alp_rice<-rice_dat|>filter(partyName=="Australian Labor Party")|>
   select(7:ncol(rice_dat))|>
@@ -54,7 +128,7 @@ alp_rice<-rice_dat|>filter(partyName=="Australian Labor Party")|>
   summarise(across(starts_with("div"), ~ rice(.x)))|>
   rowMeans()
 
-lib_rice<-rice_dat|>filter(partyName=="Liberal Party"|
+lib_rice<-rice_dat|>filter(partyName=="Liberal Party of Australia"|
                              partyName=="Liberal National Party of Queensland")|>
   select(7:ncol(rice_dat))|>
   select(
@@ -89,11 +163,11 @@ green_rice <-rice_dat|>filter(partyName=="Australian Greens")|>
   rowMeans()
 
 rice_scores <- bind_rows(teal=teal_rice,
-                        teal_plus=teal_plus_rice,
-                        alp=alp_rice,
-                        lib=lib_rice,
-                        nat=nat_rice,
-                        green=green_rice)
+                         teal_plus=teal_plus_rice,
+                         alp=alp_rice,
+                         lib=lib_rice,
+                         nat=nat_rice,
+                         green=green_rice)
 
 
 # agreement index scores (Hix, Noury and Roland)
@@ -143,7 +217,7 @@ alp_ai<-dat|>filter(partyName=="Australian Labor Party")|>
   summarise(across(starts_with("div"), ~ ai(.x)))|>
   rowMeans()
 
-lib_ai<-dat|>filter(partyName=="Liberal Party"|
+lib_ai<-dat|>filter(partyName=="Liberal Party of Australia"|
                       partyName=="Liberal National Party of Queensland")|>
   select(7:ncol(rice_dat))|>
   select(
@@ -256,7 +330,7 @@ oc_teal_1dim <- oc(rc, dims=1, minvotes=25, lop=0.05,
                    polarity=c(dutton_no), verbose=T)
 
 oc_teal_2dim <- oc(rc, dims=2, minvotes=25, lop=0.05,
-              polarity=c(dutton_no,dutton_no), verbose=T)
+                   polarity=c(dutton_no,dutton_no), verbose=T)
 
 # checking fits
 

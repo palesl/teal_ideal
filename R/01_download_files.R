@@ -15,7 +15,7 @@ source("R/00_helpers.R")
 # get all house divisions in the 47th Parliament
 
 
-divisionsPH<-read_json("https://divisions.aph.gov.au/api/division?f=2022-7-26&t=2024-6-6&page=0&ps=1000")[[3]]
+divisionsPH<-read_json("https://divisions.aph.gov.au/api/division?f=2022-7-26&t=2025-2-6&page=0&ps=1000")[[3]]
 divisionsPH_list<-list()
 
 for(i in 1:length(divisionsPH)){
@@ -34,6 +34,8 @@ vote_info_list<-list()
 
 for(i in 1:nrow(divisions)){
 
+  while(i<=length(vote_info_list)){i<-i+1}
+  Sys.sleep(2)
   print(paste(i,"out of", nrow(divisions), "(votes)"))
   url<-paste0('https://divisions.aph.gov.au/api/division/',divisions$divisionId[i])
   division<-read_json(url)

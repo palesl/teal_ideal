@@ -191,7 +191,7 @@ angle_v_turnout<-ggplot(data=divisions_dat,
                         aes(turnout,abs_angle, text=name))+
   geom_point(alpha=.5)+theme_minimal()+
   scale_y_continuous(breaks = c(15,30,45,60,75,90))+
-  ylab("alternative←|cutpoint angle|→gov-opp")
+  ylab("alternative ← cutpoint angle → gov-opp")
 
 angle_v_turnout_plotly<-ggplotly(angle_v_turnout, tooltip = "name")
 
@@ -212,7 +212,7 @@ p_cutlines<-ggplot(data = ip_frame, aes(coord1D,coord2D))+
   scale_fill_manual(values=c("#00000000","#6bc2c3"))+
   scale_colour_manual(values=c("#00000000","black"))+
   theme_minimal()+
-  ylab("minor party ←| dimension 2 |→ major party")+xlab('government ←| dimension 1 |→ opposition')+
+  ylab("minor party ←  dimension 2  → major party")+xlab('government ←  dimension 1  → opposition')+
   theme(legend.position = "none")+
   annotate("path",
            x=cos(seq(0,2*pi,length.out=100)),
@@ -236,7 +236,7 @@ p_cutline_plotly
 
 lm(abs_angle~partyName + turnout +negatived,data=divisions_dat)|>summary()
 
-
+lm(abs_angle~partyName-1, data=divisions_dat)|>summary()
 
 
 cor.test(divisions_dat$abs_angle,divisions_dat$turnout)
