@@ -86,6 +86,9 @@ teal_plus_splits$division_name<-rownames(teal_plus_splits)
 
 names(teal_plus_splits)[1]<-"Rice_teal_plus"
 
+
+
+
 divisions<-divisions|>left_join(teal_plus_splits)
 divisions$date<-as.Date(divisions$date)
 ggplot(data=divisions, aes(date, Rice_teal))+geom_smooth()+geom_point()
@@ -102,6 +105,19 @@ teal_split_table<-divisions|>filter(Rice_teal<1)|>
             teals =paste0(n()," (",round(100*n()/nrow(divisions|>filter(Rice_teal_plus<1)),1),"%)")
   )|>arrange(-n)|>select(-n)
 
+
+teal_split_divisions<-divisions|>filter(Rice_teal<1)|>
+  select(divisionId, divisionNumber, url, title, question,Rice_teal)|>
+  mutate(division_type=case_when(grepl("Fair Work",title)~"Bills, Fair Work Legislation",
+                                 grepl("Bill",title)~"Bills, other",
+                                 grepl("Suspension of", title)~"Suspension of Standing Orders, other procedure",
+                                 grepl("Hamas",title)~"Israel Gaza Conflict",
+                                 grepl("Two-state",title)~"Israel Gaza Conflict",
+                                 .default = "Motions, other")
+  )
+
+write_excel_csv(teal_split_divisions, 'working_data/teal_splits_afr.csv')
+
 teal_plus_split_table<-divisions|>filter(Rice_teal_plus<1)|>
   select(title, question)|>
   mutate(division_type=case_when(grepl("Fair Work",title)~"Bills, Fair Work Legislation",
@@ -116,6 +132,10 @@ teal_plus_split_table<-divisions|>filter(Rice_teal_plus<1)|>
             )|>arrange(-n)|>select(-n)
 
 split_tab<-teal_split_table|>left_join(teal_plus_split_table)
+
+
+
+
 
 alp_rice<-rice_dat|>filter(partyName=="Australian Labor Party")|>
   select(7:ncol(rice_dat))|>
@@ -169,6 +189,142 @@ rice_scores <- bind_rows(teal=teal_rice,
                          nat=nat_rice,
                          green=green_rice)
 
+## percent agreement for the 8 teals ####
+
+Mode <- function(x, na.rm=F) {
+  ux <- unique(x)
+  if(na.rm==T){ux<-ux[!is.na(ux)]}
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+
+pos_alp<-rice_dat|>filter(partyName=="Australian Labor Party")|>
+  select(7:ncol(rice_dat))|>
+  apply(2,Mode, na.rm=T)
+
+pos_green<-rice_dat|>filter(partyName=="Australian Greens")|>
+  select(7:ncol(rice_dat))|>
+  apply(2,Mode, na.rm=T)
+
+pos_lib<-rice_dat|>filter(partyName=="Liberal Party of Australia"|
+                            partyName=="Liberal National Party of Queensland")|>
+  select(7:ncol(rice_dat))|>
+  apply(2,Mode, na.rm=T)
+
+pos_teal_skeleton<-rice_dat|>filter(teal_plus==TRUE&
+                             DisplayName!="WILKIE, Andrew Damien"&
+                             DisplayName!="SHARKIE, Rebekha Carina Che")|>
+  t()
+
+pos_teal<-pos_teal_skeleton[7:nrow(pos_teal_skeleton),]|>as.data.frame()
+names(pos_teal)<-gsub(",.*$",'',pos_teal_skeleton[2,])
+
+teal_vote_with<-bind_cols(pos_teal, "LIB"=pos_lib, "ALP"=pos_alp,"GRN"=pos_green)
+
+teal_agreement<-teal_vote_with|>
+  mutate(
+    CHANEY_LIB=CHANEY==LIB,
+    CHANEY_ALP=CHANEY==ALP,
+    CHANEY_GRN=CHANEY==GRN,
+
+    DANIEL_LIB=DANIEL==LIB,
+    DANIEL_ALP=DANIEL==ALP,
+    DANIEL_GRN=DANIEL==GRN,
+
+    HAINES_LIB=HAINES==LIB,
+    HAINES_ALP=HAINES==ALP,
+    HAINES_GRN=HAINES==GRN,
+
+    RYAN_LIB=RYAN==LIB,
+    RYAN_ALP=RYAN==ALP,
+    RYAN_GRN=RYAN==GRN,
+
+    SCAMPS_LIB=SCAMPS==LIB,
+    SCAMPS_ALP=SCAMPS==ALP,
+    SCAMPS_GRN=SCAMPS==GRN,
+
+    SPENDER_LIB=SPENDER==LIB,
+    SPENDER_ALP=SPENDER==ALP,
+    SPENDER_GRN=SPENDER==GRN,
+
+    STEGGALL_LIB=STEGGALL==LIB,
+    STEGGALL_ALP=STEGGALL==ALP,
+    STEGGALL_GRN=STEGGALL==GRN,
+
+    TINK_LIB=TINK==LIB,
+    TINK_ALP=TINK==ALP,
+    TINK_GRN=TINK==GRN
+  )|>select(CHANEY_LIB:TINK_GRN)
+
+div_types<-divisions|>
+  select(title, question)|>
+  mutate(legislation=case_when(
+    grepl("Bill",title)~T,
+    .default = F)
+  )
+
+library(flextable)
+
+ta <-teal_agreement|>colSums(na.rm = T)|>
+  matrix(ncol=3, byrow=T)
+rownames(ta)<-names(pos_teal)
+colnames(ta)<-c("LIB", "ALP", "GRN")
+ta
+
+ta_all<-round(ta*100/554)
+ta_all
+
+lengths<-colSums(!is.na(pos_teal))
+lengths<-matrix(lengths,ncol=3, nrow=8)
+lengths
+
+ta_voted<-round(ta*100/lengths)
+ta_voted
+
+ta_voted|>as.data.frame()|>rownames_to_column(" ")|>
+  flextable()|>set_caption("Percent agreement, all votes")
+
+
+
+teal_agreement_bills<-teal_agreement[div_types$legislation,]
+
+ta_b <-teal_agreement_bills|>colSums(na.rm = T)|>
+  matrix(ncol=3, byrow=T)
+rownames(ta_b)<-names(pos_teal)
+colnames(ta_b)<-c("LIB", "ALP", "GRN")
+ta_b
+
+lengths_bills<-colSums(!is.na(pos_teal[div_types$legislation,]))
+lengths_bills<-matrix(lengths_bills,ncol=3, nrow=8)
+lengths_bills
+
+
+ta_b_voted<-round(ta_b*100/lengths_bills)
+
+ta_b_voted|>as.data.frame()|>rownames_to_column(" ")|>
+  flextable()|>set_caption("Percent agreement, votes on legislation")
+
+
+## votes with katter ##
+
+KATTER <- rice_dat|>filter(DisplayName=="KATTER, the Hon. Robert (Bob) Carl")|>
+  select(7:ncol(rice_dat))|>as.character()
+
+vote_with_katter<-teal_vote_with
+
+for(i in 1:ncol(vote_with_katter)){
+  vote_with_katter[,i]<-KATTER==teal_vote_with[,i]
+}
+
+katter_lengths<-colSums(!is.na(vote_with_katter))
+katter_agreement<-vote_with_katter|>colSums(na.rm = T)
+katter_perc<-round(katter_agreement*100/katter_lengths)
+katter_names<-names(katter_lengths)
+data.frame(`name`= katter_names,
+           `Votes` = katter_agreement,
+           `n`=katter_lengths,
+           `perc`= katter_perc)|>flextable()|>
+  set_caption("Percent agreement, teals and major parties with Bob Katter (all votes)")
 
 # agreement index scores (Hix, Noury and Roland)
 # (max{Yi, Ni, Ai} - 1/2*[(Yi + Ni + Ai) - max{Yi, Ni, Ai}] )/(Yi + Ni + Ai)

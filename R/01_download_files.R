@@ -16,7 +16,7 @@ source("R/00_helpers.R")
 # get all house divisions in the 47th Parliament
 
 
-divisionsPH<-read_json("https://divisions.aph.gov.au/api/division?f=2022-7-26&t=2025-2-6&page=0&ps=1000")[[3]]
+divisionsPH<-read_json("https://divisions.aph.gov.au/api/division?f=2022-7-26&t=2025-3-28&page=0&ps=1000")[[3]]
 divisionsPH_list<-list()
 
 for(i in 1:length(divisionsPH)){

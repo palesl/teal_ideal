@@ -81,6 +81,7 @@ chull_teal_plus<- ip_frame|>filter(group_teal_plus=="Teal")|>
 
 # independents minus Russell Broadbent, who was lib for most of the parliament
 chull_independent<- ip_frame|>filter(!grepl("BROADBENT,", DisplayName))|>
+  filter(!grepl("GOODENOUGH,", DisplayName))|>
   filter(partyName=="Independent"|grepl("KATTER,",DisplayName))|>
   slice(chull(coord1D,coord2D))
 
@@ -241,5 +242,5 @@ lm(abs_angle~partyName-1, data=divisions_dat)|>summary()
 
 cor.test(divisions_dat$abs_angle,divisions_dat$turnout)
 
-plot.OCcoords(oc_teal_2dim, plotBy = 'partyName')
+#plot.OCcoords(oc_teal_2dim, plotBy = 'partyName')
 
